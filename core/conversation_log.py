@@ -1,6 +1,6 @@
 import csv
 from pathlib import Path
-from datetime import datetime
+from core.timezone_utils import now_sa
 import uuid
 
 
@@ -24,7 +24,7 @@ def log_message(client_id: str, conversation_id: str, role: str, content: str):
         if not file_exists:
             writer.writerow(["timestamp", "conversation_id", "role", "message"])
         writer.writerow([
-            datetime.now().isoformat(timespec="seconds"),
+            now_sa().isoformat(timespec="seconds"),
             conversation_id,
             role,
             content,

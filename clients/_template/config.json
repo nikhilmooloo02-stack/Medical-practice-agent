@@ -1,7 +1,8 @@
 {
   "client_id": "template",
   "practice_name": "Example Wellness Clinic",
-  "tagline": "Your health, our priority",
+    "tagline": "Your health, our priority",
+  "special_notice": "",
   "contact": {
     "phone": "+27 00 000 0000",
     "whatsapp": "+27 72 330 4651",

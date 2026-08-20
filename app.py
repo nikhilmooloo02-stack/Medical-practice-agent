@@ -6,6 +6,7 @@ from core.conversation_log import get_or_create_session_id, log_message
 from core.retention import clean_old_records
 
 CLIENT_ID = "_template"
+MAX_MESSAGE_LENGTH = 500
 
 config = load_client_config(CLIENT_ID)
 clean_old_records(CLIENT_ID, config)
@@ -111,8 +112,13 @@ with st.sidebar:
     st.subheader("Quick Actions")
     st.caption("Tap a topic for an instant answer")
     for i, action in enumerate(config["quick_actions"]):
-        if st.button(action["label"], use_container_width=True, key=f"qa_{i}", on_click=trigger_quick_action, args=(action["query"],)):
-            pass
+        st.button(
+            action["label"],
+            use_container_width=True,
+            key=f"qa_{i}",
+            on_click=trigger_quick_action,
+            args=(action["query"],),
+        )
 
     if config["booking"]["enabled"]:
         st.divider()
@@ -133,9 +139,16 @@ with st.sidebar:
 st.markdown(f"<div class='app-title'>{config['practice_name']}</div>", unsafe_allow_html=True)
 st.markdown(f"<div class='app-subtitle'>{config['tagline']}</div>", unsafe_allow_html=True)
 
+# --- Special notice banner (closures, holidays, announcements) ---
+if config.get("special_notice"):
+    st.warning(config["special_notice"])
+
 # --- Chat history ---
 if not st.session_state.messages:
-    st.caption("Ask a question below, or use Quick Actions / Book Now in the sidebar.")
+    st.info(
+        f"👋 Welcome! I'm the virtual assistant for {config['practice_name']}. "
+        f"Ask me about our services, hours, or location — or use Quick Actions / Book Now in the sidebar."
+    )
     st.caption("💡 For your privacy: please avoid sharing sensitive medical details in this chat. Conversations may be reviewed by staff.")
 
 for message in st.session_state.messages:
@@ -149,24 +162,27 @@ question = st.session_state.pending_question or typed_question
 st.session_state.pending_question = None
 
 if question:
-    st.session_state.messages.append({"role": "user", "content": question})
-    log_message(CLIENT_ID, session_id, "user", question)
-    with st.chat_message("user"):
-        st.markdown(question)
+    if len(question) > MAX_MESSAGE_LENGTH:
+        st.error(f"Your message is too long (max {MAX_MESSAGE_LENGTH} characters). Please shorten it and try again.")
+    else:
+        st.session_state.messages.append({"role": "user", "content": question})
+        log_message(CLIENT_ID, session_id, "user", question)
+        with st.chat_message("user"):
+            st.markdown(question)
 
-    with st.chat_message("assistant"):
-        placeholder = st.empty()
-        with st.spinner("Thinking..."):
-            try:
-                result = get_response(CLIENT_ID, question, st.session_state)
-                answer = result["response"]
-            except Exception as e:
-                answer = f"Sorry, something went wrong: {e}"
-        stream_text(answer, placeholder)
+        with st.chat_message("assistant"):
+            placeholder = st.empty()
+            with st.spinner("Thinking..."):
+                try:
+                    result = get_response(CLIENT_ID, question, st.session_state)
+                    answer = result["response"]
+                except Exception as e:
+                    answer = f"Sorry, something went wrong: {e}"
+            stream_text(answer, placeholder)
 
-    st.session_state.messages.append({"role": "assistant", "content": answer})
-    log_message(CLIENT_ID, session_id, "assistant", answer)
-    st.rerun()
+        st.session_state.messages.append({"role": "assistant", "content": answer})
+        log_message(CLIENT_ID, session_id, "assistant", answer)
+        st.rerun()
 
 # --- Disclaimer footer ---
 if config["compliance"]["popia_notice_enabled"]:

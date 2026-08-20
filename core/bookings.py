@@ -1,6 +1,6 @@
 import csv
 from pathlib import Path
-from datetime import datetime
+from core.timezone_utils import now_sa
 
 
 def save_booking(client_id: str, booking: dict):
@@ -16,7 +16,7 @@ def save_booking(client_id: str, booking: dict):
         if not file_exists:
             writer.writerow(["timestamp", "name", "phone", "service", "preferred_date", "preferred_time", "notes"])
         writer.writerow([
-            datetime.now().isoformat(timespec="seconds"),
+            now_sa().isoformat(timespec="seconds"),
             booking.get("name", ""),
             booking.get("phone", ""),
             booking.get("service", ""),

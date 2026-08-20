@@ -1,12 +1,13 @@
 import csv
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import timedelta, datetime
+from core.timezone_utils import now_sa
 
 
 def clean_old_records(client_id: str, config: dict):
     """Delete conversation log and booking rows older than the configured retention period"""
     retention_days = config["compliance"]["data_retention_days"]
-    cutoff = datetime.now() - timedelta(days=retention_days)
+    cutoff = now_sa() - timedelta(days=retention_days)
 
     _clean_csv(Path(f"clients/{client_id}/conversation_log.csv"), cutoff, timestamp_col="timestamp")
     _clean_csv(Path(f"clients/{client_id}/bookings.csv"), cutoff, timestamp_col="timestamp")
@@ -28,10 +29,13 @@ def _clean_csv(file_path: Path, cutoff: datetime, timestamp_col: str):
     for row in rows:
         try:
             row_time = datetime.fromisoformat(row[timestamp_col])
+            if row_time.tzinfo is None:
+                # Handle old rows saved before timezone-awareness was added
+                kept_rows.append(row)
+                continue
             if row_time >= cutoff:
                 kept_rows.append(row)
         except (KeyError, ValueError):
-            # If timestamp is missing or malformed, keep the row rather than risk losing data incorrectly
             kept_rows.append(row)
 
     with open(file_path, "w", newline="", encoding="utf-8") as f:
