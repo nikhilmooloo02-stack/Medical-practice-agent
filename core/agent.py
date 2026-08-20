@@ -1,5 +1,6 @@
 import os
 import time
+import streamlit as st
 from dotenv import load_dotenv
 from google import genai
 from google.genai import errors
@@ -8,7 +9,16 @@ from urllib.parse import quote
 
 load_dotenv()
 
-_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+
+def get_secret(key: str) -> str:
+    """Read a secret from Streamlit Cloud's st.secrets if available, else fall back to .env"""
+    try:
+        return st.secrets[key]
+    except Exception:
+        return os.getenv(key)
+
+
+_client = genai.Client(api_key=get_secret("GEMINI_API_KEY"))
 
 
 def build_whatsapp_link(whatsapp_number: str, practice_name: str) -> str:

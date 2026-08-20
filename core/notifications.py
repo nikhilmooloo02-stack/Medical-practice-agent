@@ -1,15 +1,24 @@
 import os
 import smtplib
+import streamlit as st
 from email.mime.text import MIMEText
 from dotenv import load_dotenv
 
 load_dotenv()
 
 
+def get_secret(key: str) -> str:
+    """Read a secret from Streamlit Cloud's st.secrets if available, else fall back to .env"""
+    try:
+        return st.secrets[key]
+    except Exception:
+        return os.getenv(key)
+
+
 def send_booking_notification(config: dict, booking: dict):
     """Send an email to the practice when a new booking comes in"""
-    sender_email = os.getenv("SENDER_EMAIL")
-    sender_password = os.getenv("SENDER_APP_PASSWORD")
+    sender_email = get_secret("SENDER_EMAIL")
+    sender_password = get_secret("SENDER_APP_PASSWORD")
     recipient_email = config["booking"].get("notify_email")
 
     if not sender_email or not sender_password or not recipient_email:
