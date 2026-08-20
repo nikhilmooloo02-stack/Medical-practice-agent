@@ -7,10 +7,35 @@ CLIENT_ID = "_template"
 
 config = load_client_config(CLIENT_ID)
 
-st.set_page_config(page_title=f"Logs - {config['practice_name']}", layout="wide")
+st.set_page_config(page_title=f"Logs - {config['practice_name']}", page_icon="🔒", layout="wide")
 
 st.title("Conversation Logs")
 st.caption(f"Internal view for {config['practice_name']} staff — not visible to patients.")
+
+# --- Simple password gate ---
+if "logs_authenticated" not in st.session_state:
+    st.session_state.logs_authenticated = False
+
+if not st.session_state.logs_authenticated:
+    st.info("This page is restricted to practice staff.")
+    entered_password = st.text_input("Enter staff password", type="password")
+
+    if st.button("Unlock"):
+        correct_password = st.secrets.get("STAFF_LOGS_PASSWORD", None)
+        if correct_password is None:
+            st.error("Staff password is not configured. Contact your administrator.")
+        elif entered_password == correct_password:
+            st.session_state.logs_authenticated = True
+            st.rerun()
+        else:
+            st.error("Incorrect password.")
+
+    st.stop()
+
+# --- Everything below only runs if authenticated ---
+if st.button("Lock this page"):
+    st.session_state.logs_authenticated = False
+    st.rerun()
 
 log_path = Path(f"clients/{CLIENT_ID}/conversation_log.csv")
 
