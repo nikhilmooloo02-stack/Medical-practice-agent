@@ -1,5 +1,5 @@
 import streamlit as st
-from core.agent import get_response
+from core.agent import get_response, build_whatsapp_link
 from core.rag import load_client_config
 from core.bookings import save_booking
 from core.notifications import send_booking_notification
@@ -89,7 +89,15 @@ if "gemini_chat" not in st.session_state:
 if "show_booking_form" not in st.session_state:
     st.session_state.show_booking_form = False
 
-# --- Sidebar: Quick Actions ---
+
+def reset_conversation():
+    st.session_state.messages = []
+    st.session_state.gemini_chat = None
+    st.session_state.pending_question = None
+    st.session_state.show_booking_form = False
+
+
+# --- Sidebar: Quick Actions, Booking, WhatsApp ---
 with st.sidebar:
     st.subheader("Quick Actions")
     st.caption("Tap a topic for an instant answer")
@@ -102,6 +110,16 @@ with st.sidebar:
         st.subheader("Book an Appointment")
         if st.button("Book Now", use_container_width=True, key="book_now_btn"):
             st.session_state.show_booking_form = True
+
+    st.divider()
+    st.subheader("Need a human?")
+    wa_link = build_whatsapp_link(config["escalation"]["whatsapp_number"], config["practice_name"])
+    st.markdown(f"[💬 Chat on WhatsApp]({wa_link})")
+
+    st.divider()
+    if st.button("Start New Conversation", use_container_width=True, key="reset_btn"):
+        reset_conversation()
+        st.rerun()
 
 # --- Header ---
 st.markdown(f"<div class='app-title'>{config['practice_name']}</div>", unsafe_allow_html=True)
@@ -177,7 +195,7 @@ if not st.session_state.messages:
 
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
-        st.write(message["content"])
+        st.markdown(message["content"])
 
 # --- Input handling ---
 typed_question = st.chat_input("Ask a question...")
@@ -188,7 +206,7 @@ st.session_state.pending_question = None
 if question:
     st.session_state.messages.append({"role": "user", "content": question})
     with st.chat_message("user"):
-        st.write(question)
+        st.markdown(question)
 
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
@@ -197,7 +215,7 @@ if question:
                 answer = result["response"]
             except Exception as e:
                 answer = f"Sorry, something went wrong: {e}"
-        st.write(answer)
+        st.markdown(answer)
 
     st.session_state.messages.append({"role": "assistant", "content": answer})
     st.rerun()

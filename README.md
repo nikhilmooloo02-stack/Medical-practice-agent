@@ -17,3 +17,22 @@ What it does:
 Architecture:
 
 The core principle: (one engine, many clients.) Nothing client-specific is hardcoded — every practice is just a config folder.
+
+Project Structure:
+
+medical-practice-agent/
+├── core/ # Shared logic — never touched per client
+│ ├── agent.py # Gemini chat wrapper, conversation memory, escalation logic
+│ ├── rag.py # Knowledge base ingestion + retrieval
+│ ├── bookings.py # Booking storage
+│ └── notifications.py # Email alerts for new bookings
+├── clients/
+│ └── _template/ # Copy this folder for every new client
+│ ├── config.json # Practice name, branding, services, hours, booking settings
+│ ├── knowledge/ # Practice-specific reference docs (optional, future use)
+│ └── branding/ # Logo and brand assets
+├── app.py # Streamlit entry point
+├── requirements.txt
+└── .env # API keys and secrets (never committed)
+
+

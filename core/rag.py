@@ -62,10 +62,26 @@ def build_client_index(client_id: str):
     return collection
 
 
-def query_knowledge(client_id: str, question: str, n_results: int = 3) -> list[str]:
-    """Retrieve the most relevant chunks for a given question"""
+def query_knowledge(client_id: str, question: str, n_results: int = 3, max_distance: float = 1.6) -> dict:
+    """
+    Retrieve the most relevant chunks for a given question.
+    Returns a dict with the matched chunks AND whether the match quality was good enough to trust.
+    Lower distance = more relevant. max_distance is a cutoff tuned for general receptionist Q&A;
+    adjust lower for stricter matching, higher for looser matching.
+    """
     chroma_client = chromadb.PersistentClient(path=f"clients/{client_id}/chroma_db")
     collection = chroma_client.get_collection(name="knowledge")
 
     results = collection.query(query_texts=[question], n_results=n_results)
-    return results["documents"][0]
+
+    documents = results["documents"][0]
+    distances = results["distances"][0]
+
+    confident_chunks = [
+        doc for doc, dist in zip(documents, distances) if dist <= max_distance
+    ]
+
+    return {
+        "chunks": confident_chunks if confident_chunks else documents,
+        "has_confident_match": len(confident_chunks) > 0,
+    }

@@ -4,7 +4,7 @@
   "tagline": "Your health, our priority",
   "contact": {
     "phone": "+27 00 000 0000",
-    "whatsapp": "+27 00 000 0000",
+    "whatsapp": "+27 72 330 4651",
     "email": "info@example.co.za",
     "address": "123 Example Street, Suburb, City, 0000",
     "website": "www.example.co.za"
@@ -44,7 +44,7 @@
     "disclaimer_text": "This chat does not provide medical advice or diagnosis. For emergencies, contact emergency services immediately."
   },
   "escalation": {
-    "whatsapp_number": "+27 00 000 0000",
+    "whatsapp_number": "+27 72 330 4651",
     "escalation_trigger_keywords": ["emergency", "urgent", "speak to someone", "human", "reception"]
   },
   "ai_settings": {
