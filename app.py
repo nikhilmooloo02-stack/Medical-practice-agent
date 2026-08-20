@@ -1,12 +1,13 @@
 import streamlit as st
 from core.agent import get_response, build_whatsapp_link
 from core.rag import load_client_config
-from core.bookings import save_booking
-from core.notifications import send_booking_notification
+from core.conversation_log import get_or_create_session_id, log_message
+from core.retention import clean_old_records
 
 CLIENT_ID = "_template"
 
 config = load_client_config(CLIENT_ID)
+clean_old_records(CLIENT_ID, config)
 
 st.set_page_config(page_title=config["practice_name"], layout="centered", initial_sidebar_state="expanded")
 
@@ -53,19 +54,6 @@ st.markdown(
         background-color: {primary};
         color: white;
     }}
-    div.stFormSubmitButton > button {{
-        background-color: {primary};
-        color: white;
-        border-radius: 10px;
-        border: none;
-    }}
-    .panel-box {{
-        background-color: #ffffff;
-        border: 1px solid #e3ebf5;
-        border-radius: 12px;
-        padding: 14px 16px;
-        margin-bottom: 1rem;
-    }}
     .footer-note {{
         color: #aaa;
         font-size: 0.72rem;
@@ -86,18 +74,20 @@ if "pending_question" not in st.session_state:
     st.session_state.pending_question = None
 if "gemini_chat" not in st.session_state:
     st.session_state.gemini_chat = None
-if "show_booking_form" not in st.session_state:
-    st.session_state.show_booking_form = False
+if "conversation_id" not in st.session_state:
+    st.session_state.conversation_id = None
+
+session_id = get_or_create_session_id(st.session_state)
 
 
 def reset_conversation():
     st.session_state.messages = []
     st.session_state.gemini_chat = None
     st.session_state.pending_question = None
-    st.session_state.show_booking_form = False
+    st.session_state.conversation_id = None
 
 
-# --- Sidebar: Quick Actions, Booking, WhatsApp ---
+# --- Sidebar: Quick Actions, Booking link, WhatsApp ---
 with st.sidebar:
     st.subheader("Quick Actions")
     st.caption("Tap a topic for an instant answer")
@@ -108,8 +98,7 @@ with st.sidebar:
     if config["booking"]["enabled"]:
         st.divider()
         st.subheader("Book an Appointment")
-        if st.button("Book Now", use_container_width=True, key="book_now_btn"):
-            st.session_state.show_booking_form = True
+        st.page_link("pages/1_Book_Appointment.py", label="Go to Booking Page", icon="📅")
 
     st.divider()
     st.subheader("Need a human?")
@@ -125,73 +114,10 @@ with st.sidebar:
 st.markdown(f"<div class='app-title'>{config['practice_name']}</div>", unsafe_allow_html=True)
 st.markdown(f"<div class='app-subtitle'>{config['tagline']}</div>", unsafe_allow_html=True)
 
-# --- Booking form panel ---
-if st.session_state.show_booking_form:
-    st.markdown('<div class="panel-box">', unsafe_allow_html=True)
-    st.write("### Book Your Appointment")
-    st.caption("Fill in the details below and our team will confirm your booking shortly.")
-
-    with st.form("booking_form"):
-        name = st.text_input(
-            "Full name",
-            placeholder="e.g. Jane Dlamini",
-            help="Enter your first and last name so we know who's booking.",
-        )
-        phone = st.text_input(
-            "Phone number",
-            placeholder="e.g. 082 123 4567",
-            help="We'll use this number to confirm your appointment.",
-        )
-        service = st.selectbox(
-            "Which service would you like to book?",
-            config["booking"]["services_offered"],
-            help="Select the service you're interested in.",
-        )
-        preferred_date = st.date_input(
-            "Preferred date",
-            help="Choose your preferred appointment date. This is a request, not a confirmed slot yet.",
-        )
-        preferred_time = st.time_input(
-            "Preferred time",
-            help="Choose your preferred time. We'll confirm actual availability with you.",
-        )
-        notes = st.text_area(
-            "Anything else we should know? (optional)",
-            placeholder="e.g. first-time visit, specific concern, accessibility needs",
-            help="Optional — add any extra info that would help the practice prepare for your visit.",
-        )
-
-        submitted = st.form_submit_button("Confirm Booking")
-        if submitted:
-            if not name or not phone:
-                st.error("Please provide at least your name and phone number.")
-            else:
-                booking_data = {
-                    "name": name,
-                    "phone": phone,
-                    "service": service,
-                    "preferred_date": str(preferred_date),
-                    "preferred_time": str(preferred_time),
-                    "notes": notes,
-                }
-                save_booking(CLIENT_ID, booking_data)
-                send_booking_notification(config, booking_data)
-                st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": f"Booking received for {name} — {service} on {preferred_date} at {preferred_time}. We'll confirm shortly!"
-                })
-                st.session_state.show_booking_form = False
-                st.rerun()
-
-    if st.button("Cancel", key="cancel_booking"):
-        st.session_state.show_booking_form = False
-        st.rerun()
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
 # --- Chat history ---
 if not st.session_state.messages:
-    st.caption("Ask a question below, or use Quick Actions / Book Now in the sidebar (top-left arrow).")
+    st.caption("Ask a question below, or use Quick Actions / Book Now in the sidebar.")
+    st.caption("💡 For your privacy: please avoid sharing sensitive medical details in this chat. Conversations may be reviewed by staff.")
 
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
@@ -205,6 +131,7 @@ st.session_state.pending_question = None
 
 if question:
     st.session_state.messages.append({"role": "user", "content": question})
+    log_message(CLIENT_ID, session_id, "user", question)
     with st.chat_message("user"):
         st.markdown(question)
 
@@ -218,6 +145,7 @@ if question:
         st.markdown(answer)
 
     st.session_state.messages.append({"role": "assistant", "content": answer})
+    log_message(CLIENT_ID, session_id, "assistant", answer)
     st.rerun()
 
 # --- Disclaimer footer ---

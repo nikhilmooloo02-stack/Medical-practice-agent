@@ -216,3 +216,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+clients/*/conversation_log.csv
+clients/*/bookings.csv
+clients/*/chroma_db/

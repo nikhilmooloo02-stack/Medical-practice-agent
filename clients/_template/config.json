@@ -29,6 +29,16 @@
       "name": "General Consultation",
       "description": "Standard consultation with a practitioner",
       "price_range": "R450-R650"
+    },
+    {
+      "name": "Follow-Up Consultation",
+      "description": "Shorter check-in appointment for existing patients",
+      "price_range": "R250-R350"
+    },
+    {
+      "name": "Wellness Assessment",
+      "description": "Comprehensive health and lifestyle assessment",
+      "price_range": "R800-R1200"
     }
   ],
   "staff": [
@@ -41,11 +51,11 @@
   "compliance": {
     "popia_notice_enabled": true,
     "data_retention_days": 365,
-    "disclaimer_text": "This chat does not provide medical advice or diagnosis. For emergencies, contact emergency services immediately."
+    "disclaimer_text": "This chat does not provide medical advice or diagnosis. For emergencies, contact emergency services immediately. Conversations may be logged and reviewed by practice staff to improve service quality, and are retained in line with our data retention policy."
   },
   "escalation": {
     "whatsapp_number": "+27 72 330 4651",
-    "escalation_trigger_keywords": ["emergency", "urgent", "speak to someone", "human", "reception"]
+    "escalation_trigger_keywords": ["emergency", "urgent", "speak to a person", "speak to someone", "human agent", "talk to reception"]
   },
   "ai_settings": {
     "model": "gemini-3.5-flash-lite",
@@ -61,8 +71,6 @@
   ],
   "booking": {
     "enabled": true,
-    "services_offered": ["General Consultation"],
-    "collect_fields": ["name", "phone", "preferred_date", "preferred_time", "service", "notes"],
     "notify_email": "nikhilmooloo02@gmail.com"
   }
 }

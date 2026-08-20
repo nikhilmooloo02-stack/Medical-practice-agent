@@ -64,7 +64,8 @@ def get_or_create_chat(session_state, config: dict):
     """Reuse one chat session for the whole conversation, so the model remembers context"""
     if "gemini_chat" not in session_state or session_state.gemini_chat is None:
         chat = _client.chats.create(model=config["ai_settings"]["model"])
-        chat.send_message(build_system_prompt(config))
+        # Protected with retry too — this used to be an unguarded call that crashed on 503
+        call_gemini_with_retry(chat, build_system_prompt(config))
         session_state.gemini_chat = chat
     return session_state.gemini_chat
 
@@ -84,35 +85,46 @@ def get_response(client_id: str, question: str, session_state) -> dict:
             "whatsapp_link": link,
         }
 
-    retrieval = query_knowledge(client_id, question)
-    chunks = retrieval["chunks"]
-    confident = retrieval["has_confident_match"]
-
-    knowledge_text = "\n".join(f"- {chunk}" for chunk in chunks)
-    confidence_note = (
-        ""
-        if confident
-        else "\n(Note: LOW CONFIDENCE — this context may not actually answer the question. "
-             "If it doesn't, say you don't know and give the patient the phone/WhatsApp number instead of guessing.)"
-    )
-
-    chat = get_or_create_chat(session_state, config)
-
-    message_with_context = (
-        f"Relevant practice information for this question:\n{knowledge_text}{confidence_note}\n\n"
-        f"Patient: {question}"
-    )
+    whatsapp_number = config["escalation"]["whatsapp_number"]
+    link = build_whatsapp_link(whatsapp_number, config["practice_name"])
 
     try:
+        retrieval = query_knowledge(client_id, question)
+        chunks = retrieval["chunks"]
+        confident = retrieval["has_confident_match"]
+
+        knowledge_text = "\n".join(f"- {chunk}" for chunk in chunks)
+        confidence_note = (
+            ""
+            if confident
+            else "\n(Note: LOW CONFIDENCE — this context may not actually answer the question. "
+                 "If it doesn't, say you don't know and give the patient the phone/WhatsApp number instead of guessing.)"
+        )
+
+        chat = get_or_create_chat(session_state, config)
+
+        message_with_context = (
+            f"Relevant practice information for this question:\n{knowledge_text}{confidence_note}\n\n"
+            f"Patient: {question}"
+        )
+
         response_text = call_gemini_with_retry(chat, message_with_context)
         return {"response": response_text, "escalated": False, "whatsapp_link": None}
+
     except errors.ServerError:
-        whatsapp_number = config["escalation"]["whatsapp_number"]
-        link = build_whatsapp_link(whatsapp_number, config["practice_name"])
         return {
             "response": (
                 f"I'm having trouble responding right now due to high demand. "
                 f"[Click here to chat with us on WhatsApp]({link}) or try again in a moment."
+            ),
+            "escalated": False,
+            "whatsapp_link": link,
+        }
+    except Exception as e:
+        return {
+            "response": (
+                f"Sorry, something went wrong on our end. "
+                f"[Click here to chat with us on WhatsApp]({link}) and we'll help you directly."
             ),
             "escalated": False,
             "whatsapp_link": link,
