@@ -24,6 +24,7 @@ secondary = config["branding"]["secondary_color"]
 st.markdown(
     f"""
     <style>
+    /* Light mode (default) */
     .stApp {{ background-color: #f5f8fc; }}
     .app-title {{
         color: {primary};
@@ -69,6 +70,39 @@ st.markdown(
         padding-top: 0.75rem;
         border-top: 1px solid #e3ebf5;
     }}
+
+    /* Dark mode overrides — activates automatically based on device/browser setting */
+    @media (prefers-color-scheme: dark) {{
+        .stApp {{ background-color: #0e1117; }}
+        .app-subtitle {{ color: #aaa; }}
+        div[data-testid="stChatMessage"] {{
+            background-color: #1c1f26;
+            border: 1px solid #2c2f38;
+        }}
+        div[data-testid="stChatMessage"] p {{
+            color: #f0f0f0 !important;
+        }}
+        div.stButton > button {{
+            background-color: #1c1f26;
+            color: {secondary};
+            border: 1px solid {secondary};
+        }}
+        div.stButton > button:hover {{
+            background-color: {secondary};
+            color: #0e1117;
+        }}
+        .footer-note {{
+            color: #666;
+            border-top: 1px solid #2c2f38;
+        }}
+    }}
+
+    /* Keep chat input visible and stable on mobile keyboards */
+    div[data-testid="stChatInput"] {{
+        position: sticky;
+        bottom: 0;
+        z-index: 999;
+    }}
     </style>
     """,
     unsafe_allow_html=True,
@@ -98,13 +132,15 @@ def trigger_quick_action(query: str):
     st.session_state.pending_question = query
 
 
-def stream_text(text: str, placeholder):
-    """Simulate a natural typing effect by revealing text progressively"""
+def stream_text(text: str, placeholder, batch_size: int = 3):
+    """Reveal text in small batches of words instead of one at a time — smoother and lighter on mobile"""
+    words = text.split(" ")
     displayed = ""
-    for word in text.split(" "):
-        displayed += word + " "
+    for i in range(0, len(words), batch_size):
+        chunk = " ".join(words[i:i + batch_size])
+        displayed += chunk + " "
         placeholder.markdown(displayed)
-        time.sleep(0.02)
+        time.sleep(0.04)
 
 
 # --- Sidebar: Quick Actions, Booking link, WhatsApp ---
@@ -139,7 +175,7 @@ with st.sidebar:
 st.markdown(f"<div class='app-title'>{config['practice_name']}</div>", unsafe_allow_html=True)
 st.markdown(f"<div class='app-subtitle'>{config['tagline']}</div>", unsafe_allow_html=True)
 
-# --- Special notice banner (closures, holidays, announcements) ---
+# --- Special notice banner ---
 if config.get("special_notice"):
     st.warning(config["special_notice"])
 

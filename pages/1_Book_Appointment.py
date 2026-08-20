@@ -3,6 +3,7 @@ import re
 from core.rag import load_client_config
 from core.bookings import save_booking
 from core.notifications import send_booking_notification
+from core.timezone_utils import now_sa
 
 CLIENT_ID = "_template"
 
@@ -11,6 +12,7 @@ config = load_client_config(CLIENT_ID)
 st.set_page_config(page_title=f"Book - {config['practice_name']}", page_icon="📅", layout="centered")
 
 primary = config["branding"]["primary_color"]
+secondary = config["branding"]["secondary_color"]
 
 st.markdown(
     f"""
@@ -27,6 +29,14 @@ st.markdown(
         color: white;
         border-radius: 10px;
         border: none;
+    }}
+
+    @media (prefers-color-scheme: dark) {{
+        .stApp {{ background-color: #0e1117; }}
+        div.stFormSubmitButton > button {{
+            background-color: {secondary};
+            color: #0e1117;
+        }}
     }}
     </style>
     """,
@@ -46,6 +56,7 @@ if not config["booking"]["enabled"]:
     st.info("Online booking is currently unavailable. Please contact us directly.")
 else:
     service_options = [s["name"] for s in config["services"]]
+    sa_now = now_sa()
 
     with st.form("booking_form_page"):
         name = st.text_input(
@@ -65,11 +76,13 @@ else:
         )
         preferred_date = st.date_input(
             "Preferred date",
+            value=sa_now.date(),
             help="Choose your preferred appointment date. This is a request, not a confirmed slot yet.",
         )
         preferred_time = st.time_input(
             "Preferred time",
-            help="Choose your preferred time. We'll confirm actual availability with you.",
+            value=sa_now.time().replace(second=0, microsecond=0),
+            help="Choose your preferred time (South African time). We'll confirm actual availability with you.",
         )
         notes = st.text_area(
             "Anything else we should know? (optional)",
@@ -98,7 +111,7 @@ else:
 
                 try:
                     save_booking(CLIENT_ID, booking_data)
-                except Exception as e:
+                except Exception:
                     save_ok = False
                     st.error(
                         "We couldn't save your booking due to a technical issue. "
@@ -108,7 +121,7 @@ else:
                 if save_ok:
                     try:
                         send_booking_notification(config, booking_data)
-                    except Exception as e:
+                    except Exception:
                         notify_ok = False
 
                     st.success(
