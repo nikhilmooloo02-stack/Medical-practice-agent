@@ -1,0 +1,55 @@
+{
+  "client_id": "template",
+  "practice_name": "Example Wellness Clinic",
+  "tagline": "Your health, our priority",
+  "contact": {
+    "phone": "+27 00 000 0000",
+    "whatsapp": "+27 00 000 0000",
+    "email": "info@example.co.za",
+    "address": "123 Example Street, Suburb, City, 0000",
+    "website": "www.example.co.za"
+  },
+  "branding": {
+    "primary_color": "#2D6A2D",
+    "secondary_color": "#D4A017",
+    "text_color": "#1A1A1A",
+    "logo_path": "clients/_template/branding/logo.png"
+  },
+  "hours": {
+    "monday": "08:00-17:00",
+    "tuesday": "08:00-17:00",
+    "wednesday": "08:00-17:00",
+    "thursday": "08:00-17:00",
+    "friday": "08:00-16:00",
+    "saturday": "08:00-12:00",
+    "sunday": "Closed"
+  },
+  "services": [
+    {
+      "name": "General Consultation",
+      "description": "Standard consultation with a practitioner",
+      "price_range": "R450-R650"
+    }
+  ],
+  "staff": [
+    {
+      "name": "Dr. Example Name",
+      "role": "Practitioner",
+      "bio": "Short bio describing experience and specialties"
+    }
+  ],
+  "compliance": {
+    "popia_notice_enabled": true,
+    "data_retention_days": 365,
+    "disclaimer_text": "This chat does not provide medical advice or diagnosis. For emergencies, contact emergency services immediately."
+  },
+  "escalation": {
+    "whatsapp_number": "+27 00 000 0000",
+    "escalation_trigger_keywords": ["emergency", "urgent", "speak to someone", "human", "reception"]
+  },
+  "ai_settings": {
+    "model": "gemini-3.6-flash",
+    "tone": "warm, professional, reassuring",
+    "max_response_length": 150
+  }
+}
