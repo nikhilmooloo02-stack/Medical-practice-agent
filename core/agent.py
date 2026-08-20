@@ -64,7 +64,6 @@ def get_or_create_chat(session_state, config: dict):
     """Reuse one chat session for the whole conversation, so the model remembers context"""
     if "gemini_chat" not in session_state or session_state.gemini_chat is None:
         chat = _client.chats.create(model=config["ai_settings"]["model"])
-        # Protected with retry too — this used to be an unguarded call that crashed on 503
         call_gemini_with_retry(chat, build_system_prompt(config))
         session_state.gemini_chat = chat
     return session_state.gemini_chat
@@ -90,6 +89,17 @@ def get_response(client_id: str, question: str, session_state) -> dict:
 
     try:
         retrieval = query_knowledge(client_id, question)
+
+        if retrieval.get("index_error"):
+            return {
+                "response": (
+                    f"Our knowledge base isn't set up correctly yet. "
+                    f"[Click here to chat with us on WhatsApp]({link}) and our team will help you directly."
+                ),
+                "escalated": False,
+                "whatsapp_link": link,
+            }
+
         chunks = retrieval["chunks"]
         confident = retrieval["has_confident_match"]
 
@@ -120,7 +130,7 @@ def get_response(client_id: str, question: str, session_state) -> dict:
             "escalated": False,
             "whatsapp_link": link,
         }
-    except Exception as e:
+    except Exception:
         return {
             "response": (
                 f"Sorry, something went wrong on our end. "

@@ -1,4 +1,5 @@
 import streamlit as st
+import time
 from core.agent import get_response, build_whatsapp_link
 from core.rag import load_client_config
 from core.conversation_log import get_or_create_session_id, log_message
@@ -9,7 +10,12 @@ CLIENT_ID = "_template"
 config = load_client_config(CLIENT_ID)
 clean_old_records(CLIENT_ID, config)
 
-st.set_page_config(page_title=config["practice_name"], layout="centered", initial_sidebar_state="expanded")
+st.set_page_config(
+    page_title=config["practice_name"],
+    page_icon="💬",
+    layout="centered",
+    initial_sidebar_state="expanded",
+)
 
 primary = config["branding"]["primary_color"]
 secondary = config["branding"]["secondary_color"]
@@ -87,13 +93,26 @@ def reset_conversation():
     st.session_state.conversation_id = None
 
 
+def trigger_quick_action(query: str):
+    st.session_state.pending_question = query
+
+
+def stream_text(text: str, placeholder):
+    """Simulate a natural typing effect by revealing text progressively"""
+    displayed = ""
+    for word in text.split(" "):
+        displayed += word + " "
+        placeholder.markdown(displayed)
+        time.sleep(0.02)
+
+
 # --- Sidebar: Quick Actions, Booking link, WhatsApp ---
 with st.sidebar:
     st.subheader("Quick Actions")
     st.caption("Tap a topic for an instant answer")
     for i, action in enumerate(config["quick_actions"]):
-        if st.button(action["label"], use_container_width=True, key=f"qa_{i}"):
-            st.session_state.pending_question = action["query"]
+        if st.button(action["label"], use_container_width=True, key=f"qa_{i}", on_click=trigger_quick_action, args=(action["query"],)):
+            pass
 
     if config["booking"]["enabled"]:
         st.divider()
@@ -136,13 +155,14 @@ if question:
         st.markdown(question)
 
     with st.chat_message("assistant"):
+        placeholder = st.empty()
         with st.spinner("Thinking..."):
             try:
                 result = get_response(CLIENT_ID, question, st.session_state)
                 answer = result["response"]
             except Exception as e:
                 answer = f"Sorry, something went wrong: {e}"
-        st.markdown(answer)
+        stream_text(answer, placeholder)
 
     st.session_state.messages.append({"role": "assistant", "content": answer})
     log_message(CLIENT_ID, session_id, "assistant", answer)

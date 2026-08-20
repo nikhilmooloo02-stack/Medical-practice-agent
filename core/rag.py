@@ -62,13 +62,35 @@ def build_client_index(client_id: str):
     return collection
 
 
+def ensure_client_index_exists(client_id: str):
+    """Check if a client's knowledge base exists; build it automatically if missing"""
+    chroma_client = chromadb.PersistentClient(path=f"clients/{client_id}/chroma_db")
+    try:
+        chroma_client.get_collection(name="knowledge")
+        return True
+    except Exception:
+        try:
+            build_client_index(client_id)
+            return True
+        except Exception:
+            return False
+
+
 def query_knowledge(client_id: str, question: str, n_results: int = 3, max_distance: float = 1.6) -> dict:
     """
     Retrieve the most relevant chunks for a given question.
     Returns a dict with the matched chunks AND whether the match quality was good enough to trust.
-    Lower distance = more relevant. max_distance is a cutoff tuned for general receptionist Q&A;
-    adjust lower for stricter matching, higher for looser matching.
+    Automatically builds the client's knowledge base on first use if it doesn't exist yet.
     """
+    index_ready = ensure_client_index_exists(client_id)
+
+    if not index_ready:
+        return {
+            "chunks": [],
+            "has_confident_match": False,
+            "index_error": True,
+        }
+
     chroma_client = chromadb.PersistentClient(path=f"clients/{client_id}/chroma_db")
     collection = chroma_client.get_collection(name="knowledge")
 
@@ -84,4 +106,5 @@ def query_knowledge(client_id: str, question: str, n_results: int = 3, max_dista
     return {
         "chunks": confident_chunks if confident_chunks else documents,
         "has_confident_match": len(confident_chunks) > 0,
+        "index_error": False,
     }

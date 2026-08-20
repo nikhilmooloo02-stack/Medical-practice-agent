@@ -8,7 +8,7 @@ CLIENT_ID = "_template"
 
 config = load_client_config(CLIENT_ID)
 
-st.set_page_config(page_title=f"Book - {config['practice_name']}", layout="centered")
+st.set_page_config(page_title=f"Book - {config['practice_name']}", page_icon="📅", layout="centered")
 
 primary = config["branding"]["primary_color"]
 
@@ -92,9 +92,32 @@ else:
                     "preferred_time": str(preferred_time),
                     "notes": notes.strip(),
                 }
-                save_booking(CLIENT_ID, booking_data)
-                send_booking_notification(config, booking_data)
-                st.success(
-                    f"Thanks {name}! Your request for {service} on {preferred_date} at {preferred_time} "
-                    f"has been received. Our team will confirm shortly."
-                )
+
+                save_ok = True
+                notify_ok = True
+
+                try:
+                    save_booking(CLIENT_ID, booking_data)
+                except Exception as e:
+                    save_ok = False
+                    st.error(
+                        "We couldn't save your booking due to a technical issue. "
+                        "Please try again, or contact us directly to book."
+                    )
+
+                if save_ok:
+                    try:
+                        send_booking_notification(config, booking_data)
+                    except Exception as e:
+                        notify_ok = False
+
+                    st.success(
+                        f"Thanks {name}! Your request for {service} on {preferred_date} at {preferred_time} "
+                        f"has been received. Our team will confirm shortly."
+                    )
+
+                    if not notify_ok:
+                        st.info(
+                            "Note: your booking was saved successfully, though our notification system "
+                            "had a hiccup — our team will still see your request when they next check."
+                        )
