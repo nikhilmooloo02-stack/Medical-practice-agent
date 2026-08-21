@@ -55,11 +55,34 @@ else:
 st.markdown(
     f"""
     <style>
-    .stApp {{ background-color: {bg_color}; }}
+    html, body {{
+        background-color: {bg_color} !important;
+    }}
+    #root {{
+        background-color: {bg_color} !important;
+    }}
+
+    .stApp {{ background-color: {bg_color} !important; }}
 
     .stApp, .stApp p, .stApp span, .stApp label, .stApp li,
     .stMarkdown, .stMarkdown p, .stCaption, [data-testid="stCaptionContainer"] {{
         color: {text_color};
+    }}
+
+    div[data-testid="stAppViewContainer"] {{
+        background-color: {bg_color} !important;
+    }}
+    div[data-testid="stMain"] {{
+        background-color: {bg_color} !important;
+    }}
+    div[data-testid="stMainBlockContainer"] {{
+        background-color: {bg_color} !important;
+    }}
+    div[data-testid="block-container"] {{
+        background-color: {bg_color} !important;
+    }}
+    div[data-testid="stAppViewBlockContainer"] {{
+        background-color: {bg_color} !important;
     }}
 
     .app-title {{
@@ -128,7 +151,30 @@ st.markdown(
         position: sticky;
         bottom: 0;
         z-index: 999;
-        background-color: {bg_color};
+        background-color: {bg_color} !important;
+    }}
+    div[data-testid="stChatInput"] > div {{
+        background-color: {card_bg} !important;
+        border: 1px solid {card_border} !important;
+    }}
+        div[data-testid="stBottomBlockContainer"] {{
+        background-color: {bg_color} !important;
+    }}
+    div[data-testid="stBottom"] {{
+        background-color: {bg_color} !important;
+    }}
+    div[data-testid="stBottom"] > div {{
+        background-color: {bg_color} !important;
+    }}
+
+    header[data-testid="stHeader"] {{
+        background-color: {bg_color} !important;
+    }}
+    div[data-testid="stToolbar"] {{
+        background-color: {bg_color} !important;
+    }}
+    div[data-testid="stDecoration"] {{
+        background-color: {bg_color} !important;
     }}
 
     .footer-note {{
